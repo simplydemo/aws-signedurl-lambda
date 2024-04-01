@@ -1,0 +1,52 @@
+service: aws-signedurl-lambda
+frameworkVersion: '3'
+
+package:
+  individually: true
+  patterns:
+    - 'index.ts'
+    - 'src/**/*.ts'
+    - 'types/**/*.ts'
+    - 'node_modules/node-fetch/**'
+    - '!tmp/**'
+    - '!dist/**'
+    - '!target/**'
+    - '!.git/**'
+
+provider:
+  name: aws
+  stage: dev
+  region: <AWS_REGION>
+  profile: <AWS_PROFILE>
+  runtime: nodejs20.x
+  architecture: arm64
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - ssm:GetParameter
+          Resource: "<SSM_PARAMETER_PATH_ARN_FOR_CLOUDFRONT_PRIVATE_KEY>"
+        - Effect: Allow
+          Action:
+            - kms:Decrypt
+          Resource: "<KMS_ARN>"
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+          Resource: "<S3_BUCKET_ARN>/*"
+
+functions:
+  cloudfrontSignedUrl:
+    handler: index.handler
+    timeout: 60
+    environment:
+      CLOUDFRONT_DOMAIN: "<CLOUDFRONT_DOMAIN>"
+      CLOUDFRONT_KEYPAIR_PATH: "<SSM_PARAMETER_PATH_FOR_CLOUDFRONT_PRIVATE_KEY>"
+      KEY_PAIR_ID: "<CLOUDFRONT_PUBLIC_KEY_ID>"
+      EXPIRATION_DAYS: "5"
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline
+
